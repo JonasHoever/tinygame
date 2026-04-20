@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TinyGame Arena</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar card">
+        <h1>TinyGame Arena</h1>
+        <p>Realtime Tic Tac Toe mit Flask + Socket.IO</p>
+      </header>
+
+      <section class="panel card" id="lobby-panel">
+        <h2>Lobby</h2>
+        <div class="grid two-col">
+          <label>
+            Benutzername
+            <input id="username" maxlength="16" placeholder="z. B. Alex" />
+          </label>
+          <label>
+            Raumcode
+            <input id="roomCodeInput" maxlength="6" placeholder="ABC123" />
+          </label>
+        </div>
+        <div class="actions">
+          <button id="createRoomBtn" class="btn primary">Raum erstellen</button>
+          <button id="joinRoomBtn" class="btn">Raum beitreten</button>
+        </div>
+        <p class="status" id="lobbyStatus">Nicht verbunden</p>
+      </section>
+
+      <section class="panel card hidden" id="game-panel">
+        <div class="game-meta">
+          <div>
+            <strong>Raum:</strong> <span id="roomCodeText">-</span>
+          </div>
+          <div>
+            <strong>Du spielst:</strong> <span id="playerSymbol">-</span>
+          </div>
+          <div>
+            <strong>Status:</strong> <span id="turnInfo">Warten…</span>
+          </div>
+        </div>
+
+        <div id="board" class="board" aria-label="Tic Tac Toe Board"></div>
+
+        <div class="actions">
+          <button id="rematchBtn" class="btn primary">Rematch anfragen</button>
+          <button id="leaveBtn" class="btn danger">Raum verlassen</button>
+        </div>
+      </section>
+
+      <section class="panel card hidden" id="chat-panel">
+        <h2>Chat</h2>
+        <div id="chatMessages" class="chat-messages"></div>
+        <div class="actions">
+          <input id="chatInput" placeholder="Nachricht schreiben…" maxlength="140" />
+          <button id="sendChatBtn" class="btn">Senden</button>
+        </div>
+      </section>
+
+      <section class="panel card">
+        <h2>Spieler</h2>
+        <ul id="playersList" class="players-list"></ul>
+      </section>
+    </main>
+
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  </body>
+</html>
