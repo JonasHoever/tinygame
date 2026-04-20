@@ -5,12 +5,15 @@ Vollständig lauffähiges Multiplayer-Minigame-Projekt mit **Flask** (Backend/UI
 ## Features
 
 - Raum erstellen / Raum beitreten per Room-Code
+- Invite-Link Funktion (`/?invite=ROOMCODE`)
+- Fester User-Login (Username + PIN via Flask + SQLite) oder Gastmodus
+- Matchmaking (automatische Gegner-Suche)
+- Session-Reconnect: Reload hält Spieler im Raum
 - Live-Status: Spieler verbunden/getrennt
 - Tic Tac Toe als erstes Minigame (modular erweiterbar)
 - Serverseitige Zugvalidierung, Winner Detection, Draw Detection
 - Rematch-System
-- Einfacher Ingame-Chat
-- Score je Spieler pro Raum
+- Ingame-Chat + Score je Spieler pro Raum
 - Modernes Dark-Mode UI, responsive + kleine Move-Animation
 
 ## Architektur
@@ -18,19 +21,20 @@ Vollständig lauffähiges Multiplayer-Minigame-Projekt mit **Flask** (Backend/UI
 ```text
 /workspace/tinygame
 ├── flask-backend
-│   ├── app.py                 # Flask App + REST-Gateway + UI
+│   ├── app.py                 # Flask App + REST-Gateway + Auth (SQLite)
 │   ├── requirements.txt
 │   ├── templates/
 │   │   └── index.html
 │   └── static/
 │       ├── css/styles.css
 │       └── js/app.js
-└── node-realtime
-    ├── package.json
-    ├── server.js              # REST + Socket.IO Server
-    └── src/
-        ├── roomManager.js     # Room-/Spieler-/Match-Lifecycle
-        └── ticTacToe.js       # Spielregeln + Gewinnerprüfung
+├── node-realtime
+│   ├── package.json
+│   ├── server.js              # REST + Socket.IO + Matchmaking
+│   └── src/
+│       ├── roomManager.js     # Room-/Spieler-/Match-Lifecycle
+│       └── ticTacToe.js       # Spielregeln + Gewinnerprüfung
+└── install.bat                # One-click Setup für Windows
 ```
 
 ## Start (lokal)
@@ -47,6 +51,7 @@ Das Skript installiert automatisch:
 - `node-realtime` Abhängigkeiten via `npm install`
 - Python-Venv in `flask-backend/.venv`
 - `pip install -r requirements.txt`
+
 ### 1) Realtime-Server starten
 
 ```bash
@@ -72,9 +77,9 @@ Flask läuft auf `http://localhost:5000`.
 ### 3) Spiel öffnen
 
 - Öffne `http://localhost:5000` in zwei Browser-Tabs oder auf zwei Geräten.
-- Spieler A erstellt einen Raum.
-- Spieler B tritt mit Room-Code bei.
-- Sofortiges Live-Gameplay ohne Reload.
+- Wähle Login als fester User (registrieren/einloggen) oder Gastmodus.
+- Entweder Raum erstellen/beitreten oder Matchmaking starten.
+- Invite-Link kann direkt geteilt werden.
 
 ## Erweiterbarkeit
 
@@ -82,8 +87,7 @@ Flask läuft auf `http://localhost:5000`.
 - `room.game.type` erlaubt Routing auf unterschiedliche Game-Engines.
 - Frontend rendert aktuell Tic Tac Toe, kann aber um weitere Boards erweitert werden.
 
-## Hinweise zu sauberer Kommunikation Flask <-> Node
+## Kommunikation Flask <-> Node
 
-- **REST**: Flask nimmt Lobby-Aktionen entgegen (`/api/rooms`, `/api/rooms/join`) und leitet intern an Node weiter.
-- **WebSocket**: Browser verbindet direkt mit Socket.IO für Game-State & Events.
-- Dadurch bleiben HTTP/UI und Realtime-Logik klar getrennt.
+- **REST via Flask**: Lobby-Aktionen (`/api/rooms`, `/api/rooms/join`) und Auth (`/api/auth/register`, `/api/auth/login`).
+- **WebSocket direkt zum Node-Server**: Game-State, Chat, Invite/Room-Events, Matchmaking-Events und Session-basierter Rejoin bei Reload.

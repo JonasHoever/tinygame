@@ -19,41 +19,61 @@
         <p>Realtime Tic Tac Toe mit Flask + Socket.IO</p>
       </header>
 
+      <section class="panel card" id="auth-panel">
+        <h2>Spieler-Modus</h2>
+        <div class="grid two-col">
+          <label>
+            Username
+            <input id="username" maxlength="16" placeholder="z. B. Alex" />
+          </label>
+          <label>
+            PIN (für festen User)
+            <input id="pin" maxlength="20" type="password" placeholder="mind. 4 Zeichen" />
+          </label>
+        </div>
+        <div class="actions wrap">
+          <button id="registerBtn" class="btn">Registrieren</button>
+          <button id="loginBtn" class="btn primary">Als fester User einloggen</button>
+          <button id="guestBtn" class="btn">Als Gast spielen</button>
+        </div>
+        <p id="authStatus" class="status">Nicht angemeldet</p>
+      </section>
+
       <section class="panel card" id="lobby-panel">
         <h2>Lobby</h2>
         <div class="grid two-col">
           <label>
-            Benutzername
-            <input id="username" maxlength="16" placeholder="z. B. Alex" />
-          </label>
-          <label>
             Raumcode
             <input id="roomCodeInput" maxlength="6" placeholder="ABC123" />
           </label>
+          <div class="matchmaking-box">
+            <strong>Schnellspiel</strong>
+            <p>Automatische Gegner-Suche</p>
+          </div>
         </div>
-        <div class="actions">
+        <div class="actions wrap">
           <button id="createRoomBtn" class="btn primary">Raum erstellen</button>
           <button id="joinRoomBtn" class="btn">Raum beitreten</button>
+          <button id="matchmakingBtn" class="btn">Matchmaking starten</button>
         </div>
         <p class="status" id="lobbyStatus">Nicht verbunden</p>
       </section>
 
       <section class="panel card hidden" id="game-panel">
         <div class="game-meta">
-          <div>
-            <strong>Raum:</strong> <span id="roomCodeText">-</span>
-          </div>
-          <div>
-            <strong>Du spielst:</strong> <span id="playerSymbol">-</span>
-          </div>
-          <div>
-            <strong>Status:</strong> <span id="turnInfo">Warten…</span>
-          </div>
+          <div><strong>Raum:</strong> <span id="roomCodeText">-</span></div>
+          <div><strong>Du spielst:</strong> <span id="playerSymbol">-</span></div>
+          <div><strong>Status:</strong> <span id="turnInfo">Warten…</span></div>
+        </div>
+
+        <div class="invite-box">
+          <input id="inviteLink" readonly />
+          <button id="copyInviteBtn" class="btn">Invite-Link kopieren</button>
         </div>
 
         <div id="board" class="board" aria-label="Tic Tac Toe Board"></div>
 
-        <div class="actions">
+        <div class="actions wrap">
           <button id="rematchBtn" class="btn primary">Rematch anfragen</button>
           <button id="leaveBtn" class="btn danger">Raum verlassen</button>
         </div>

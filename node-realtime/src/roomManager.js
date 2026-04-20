@@ -6,13 +6,11 @@ const rooms = new Map();
 function generateRoomCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
-  for (let i = 0; i < 6; i += 1) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
+  for (let i = 0; i < 6; i += 1) code += chars[Math.floor(Math.random() * chars.length)];
   return code;
 }
 
-function createRoom(username) {
+function createRoom() {
   let roomCode = generateRoomCode();
   while (rooms.has(roomCode)) roomCode = generateRoomCode();
 
@@ -23,7 +21,7 @@ function createRoom(username) {
     game: createInitialGame(),
   });
 
-  return { roomCode, username };
+  return { roomCode };
 }
 
 function roomExists(roomCode) {
@@ -34,32 +32,47 @@ function getRoom(roomCode) {
   return rooms.get(roomCode);
 }
 
-function addUserToRoom({ roomCode, socketId, username }) {
+function findRoomBySocketId(socketId) {
+  for (const room of rooms.values()) {
+    if (room.users.some((u) => u.id === socketId)) return room;
+  }
+  return null;
+}
+
+function addUserToRoom({ roomCode, socketId, sessionId, username }) {
   const room = rooms.get(roomCode);
   if (!room) return { error: "Raum existiert nicht." };
 
-  const already = room.users.find((u) => u.id === socketId);
-  if (already) return { room, user: already };
-
-  if (room.users.filter((u) => u.symbol).length >= MAX_PLAYERS) {
-    room.users.push({ id: socketId, username, symbol: null, connected: true });
-    return { room, user: room.users.at(-1) };
+  const existingSession = room.users.find((u) => u.sessionId === sessionId);
+  if (existingSession) {
+    existingSession.id = socketId;
+    existingSession.username = username;
+    existingSession.connected = true;
+    return { room, user: existingSession };
   }
 
-  const symbol = room.users.some((u) => u.symbol === "X") ? "O" : "X";
-  const user = { id: socketId, username, symbol, connected: true };
-  room.users.push(user);
-  room.score[user.id] = room.score[user.id] || 0;
+  const activePlayers = room.users.filter((u) => u.symbol && u.connected);
+  if (activePlayers.length >= MAX_PLAYERS) {
+    const watcher = { id: socketId, sessionId, username, symbol: null, connected: true };
+    room.users.push(watcher);
+    return { room, user: watcher };
+  }
 
-  if (room.users.filter((u) => u.symbol).length === 2) {
+  const connectedSymbols = new Set(room.users.filter((u) => u.connected).map((u) => u.symbol));
+  const symbol = connectedSymbols.has("X") ? "O" : "X";
+  const user = { id: socketId, sessionId, username, symbol, connected: true };
+  room.users.push(user);
+  room.score[user.sessionId] = room.score[user.sessionId] || 0;
+
+  if (room.users.filter((u) => u.symbol && u.connected).length === 2) {
     room.game.statusText = `Am Zug: ${room.game.currentTurn}`;
   }
 
   return { room, user };
 }
 
-function serializeRoom(room, currentUserId) {
-  const currentUser = room.users.find((u) => u.id === currentUserId);
+function serializeRoom(room, currentUserSessionId) {
+  const currentUser = room.users.find((u) => u.sessionId === currentUserSessionId);
   return {
     roomCode: room.code,
     symbol: currentUser?.symbol || null,
@@ -67,7 +80,7 @@ function serializeRoom(room, currentUserId) {
       username: u.username,
       symbol: u.symbol,
       connected: u.connected,
-      score: room.score[u.id] || 0,
+      score: room.score[u.sessionId] || 0,
     })),
     game: {
       ...room.game,
@@ -76,8 +89,8 @@ function serializeRoom(room, currentUserId) {
   };
 }
 
-function applyMove(room, socketId, index) {
-  const user = room.users.find((u) => u.id === socketId);
+function applyMove(room, sessionId, index) {
+  const user = room.users.find((u) => u.sessionId === sessionId);
   if (!user || !user.symbol) return { error: "Nur aktive Spieler dürfen ziehen." };
   if (room.game.winner || room.game.isDraw) return { error: "Runde ist beendet." };
   if (room.game.currentTurn !== user.symbol) return { error: "Du bist nicht am Zug." };
@@ -89,7 +102,7 @@ function applyMove(room, socketId, index) {
   if (winner) {
     room.game.winner = winner;
     room.game.statusText = `Gewinner: ${winner}`;
-    room.score[socketId] = (room.score[socketId] || 0) + 1;
+    room.score[sessionId] = (room.score[sessionId] || 0) + 1;
     return { ok: true };
   }
 
@@ -105,34 +118,39 @@ function applyMove(room, socketId, index) {
 }
 
 function markDisconnected(socketId) {
-  for (const room of rooms.values()) {
-    const user = room.users.find((u) => u.id === socketId);
-    if (user) {
-      user.connected = false;
-      room.game.statusText = `${user.username} getrennt`;
-      return { room, user };
-    }
-  }
-  return null;
+  const room = findRoomBySocketId(socketId);
+  if (!room) return null;
+
+  const user = room.users.find((u) => u.id === socketId);
+  if (!user) return null;
+
+  user.connected = false;
+  room.game.statusText = `${user.username} getrennt`;
+  return { room, user };
 }
 
 function removeUser(socketId) {
-  for (const room of rooms.values()) {
-    const idx = room.users.findIndex((u) => u.id === socketId);
-    if (idx !== -1) {
-      const [leftUser] = room.users.splice(idx, 1);
-      delete room.score[socketId];
-      if (room.users.length === 0) rooms.delete(room.code);
-      return { room, leftUser };
-    }
+  const room = findRoomBySocketId(socketId);
+  if (!room) return null;
+
+  const idx = room.users.findIndex((u) => u.id === socketId);
+  if (idx === -1) return null;
+
+  const [leftUser] = room.users.splice(idx, 1);
+  delete room.score[leftUser.sessionId];
+
+  if (room.users.filter((u) => u.symbol && u.connected).length < 2) {
+    room.game.statusText = "Warten auf zweiten Spieler…";
   }
-  return null;
+
+  if (room.users.length === 0) rooms.delete(room.code);
+  return { room, leftUser };
 }
 
-function requestRematch(room, socketId) {
-  room.game.rematchVotes.add(socketId);
+function requestRematch(room, sessionId) {
+  room.game.rematchVotes.add(sessionId);
 
-  const activePlayers = room.users.filter((u) => u.symbol).map((u) => u.id);
+  const activePlayers = room.users.filter((u) => u.symbol && u.connected).map((u) => u.sessionId);
   const allVoted = activePlayers.length === 2 && activePlayers.every((id) => room.game.rematchVotes.has(id));
 
   if (allVoted) {
@@ -149,6 +167,7 @@ module.exports = {
   createRoom,
   roomExists,
   getRoom,
+  findRoomBySocketId,
   addUserToRoom,
   serializeRoom,
   applyMove,
