@@ -37,6 +37,16 @@ Vollständig lauffähiges Multiplayer-Minigame-Projekt mit **Flask** (Backend/UI
 
 > Voraussetzungen: Python 3.10+ und Node.js 18+
 
+### Optional (Windows One-Click Setup)
+
+```bat
+install.bat
+```
+
+Das Skript installiert automatisch:
+- `node-realtime` Abhängigkeiten via `npm install`
+- Python-Venv in `flask-backend/.venv`
+- `pip install -r requirements.txt`
 ### 1) Realtime-Server starten
 
 ```bash
